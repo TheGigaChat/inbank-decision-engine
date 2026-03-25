@@ -5,7 +5,6 @@ import com.inbank.decision_engine.dto.DecisionRequest;
 import com.inbank.decision_engine.dto.DecisionResponse;
 import com.inbank.decision_engine.model.Decision;
 import com.inbank.decision_engine.model.PersonProfile;
-import com.inbank.decision_engine.service.ProfileService;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,8 +14,7 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsNegativeDecisionWhenProfileHasDebt() {
-        ProfileService profileService = personalCode -> new PersonProfile(0, true);
-        DecisionServiceImpl decisionService = new DecisionServiceImpl(profileService, defaultConstraints());
+        DecisionServiceImpl decisionService = serviceWithProfile(0, true);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010998"));
 
@@ -27,10 +25,7 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsPositiveDecisionWhenSelectedPeriodSupportsRequestedAmount() {
-        DecisionServiceImpl decisionService = new DecisionServiceImpl(
-                personalCode -> new PersonProfile(100, false),
-                defaultConstraints()
-        );
+        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 5000, 50));
 
@@ -41,10 +36,7 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsMaximumAmountForSelectedPeriodWhenItExceedsRequestedAmount() {
-        DecisionServiceImpl decisionService = new DecisionServiceImpl(
-                personalCode -> new PersonProfile(100, false),
-                defaultConstraints()
-        );
+        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 2000, 50));
 
@@ -54,11 +46,8 @@ class DecisionServiceImplTest {
     }
 
     @Test
-    void calculateDecisionReturnsRequestedAmountAtSmallestAlternativePeriodThatSatisfiesRequest() {
-        DecisionServiceImpl decisionService = new DecisionServiceImpl(
-                personalCode -> new PersonProfile(100, false),
-                defaultConstraints()
-        );
+    void calculateDecisionReturnsMinimumValidOfferAtSmallestEligiblePeriodWhenSelectedPeriodIsInvalid() {
+        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 2000, 12));
 
@@ -68,31 +57,47 @@ class DecisionServiceImplTest {
     }
 
     @Test
-    void calculateDecisionReturnsLaterAlternativePeriodWhenEarlierPeriodsCannotSatisfyRequest() {
-        DecisionServiceImpl decisionService = new DecisionServiceImpl(
-                personalCode -> new PersonProfile(100, false),
-                defaultConstraints()
-        );
+    void calculateDecisionReturnsFirstEligiblePeriodWhenSelectedPeriodIsTooShort() {
+        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 5000, 12));
 
         assertEquals(Decision.POSITIVE, response.decision());
-        assertEquals(5000, response.approvedAmount());
-        assertEquals(50, response.approvedPeriod());
+        assertEquals(2000, response.approvedAmount());
+        assertEquals(20, response.approvedPeriod());
     }
 
     @Test
-    void calculateDecisionReturnsLargestPossibleOfferWhenNoPeriodSatisfiesRequestedAmount() {
-        DecisionServiceImpl decisionService = new DecisionServiceImpl(
-                personalCode -> new PersonProfile(100, false),
-                defaultConstraints()
-        );
+    void calculateDecisionReturnsMinimumValidOfferWhenRequestedAmountCannotBeReached() {
+        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 10000, 12));
 
         assertEquals(Decision.POSITIVE, response.decision());
-        assertEquals(6000, response.approvedAmount());
-        assertEquals(60, response.approvedPeriod());
+        assertEquals(2000, response.approvedAmount());
+        assertEquals(20, response.approvedPeriod());
+    }
+
+    @Test
+    void calculateDecisionReturnsSelectedPeriodAmountWhenItIsValidButLowerThanRequestedAmount() {
+        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
+
+        DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 3000, 23));
+
+        assertEquals(Decision.POSITIVE, response.decision());
+        assertEquals(2300, response.approvedAmount());
+        assertEquals(23, response.approvedPeriod());
+    }
+
+    @Test
+    void calculateDecisionReturnsNegativeWhenNoValidOfferExistsEvenAtMaximumPeriod() {
+        DecisionServiceImpl decisionService = serviceWithProfile(10, false);
+
+        DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 2000, 12));
+
+        assertEquals(Decision.NEGATIVE, response.decision());
+        assertNull(response.approvedAmount());
+        assertNull(response.approvedPeriod());
     }
 
     @Test
@@ -108,16 +113,20 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionAppliesMaximumCapForSelectedPeriod() {
-        DecisionServiceImpl decisionService = new DecisionServiceImpl(
-                personalCode -> new PersonProfile(1000, false),
-                defaultConstraints()
-        );
+        DecisionServiceImpl decisionService = serviceWithProfile(1000, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010987", 2000, 20));
 
         assertEquals(Decision.POSITIVE, response.decision());
         assertEquals(10000, response.approvedAmount());
         assertEquals(20, response.approvedPeriod());
+    }
+
+    private DecisionServiceImpl serviceWithProfile(int creditModifier, boolean hasDebt) {
+        return new DecisionServiceImpl(
+                personalCode -> new PersonProfile(creditModifier, hasDebt),
+                defaultConstraints()
+        );
     }
 
     private LoanConstraintsProperties defaultConstraints() {
