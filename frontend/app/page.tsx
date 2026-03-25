@@ -1,12 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type DecisionResponse = {
   decision: 'POSITIVE' | 'NEGATIVE';
   approvedAmount: number | null;
   approvedPeriod: number | null;
 };
+
+type Config = {
+  minAmount: number;
+  maxAmount: number;
+  minPeriod: number;
+  maxPeriod: number;
+};
+
+const defaultConfig: Config = {
+  minAmount: 2000,
+  maxAmount: 10000,
+  minPeriod: 12,
+  maxPeriod: 60,
+};
+
+function formatEuroAmount(value: number): string {
+  return `${value.toLocaleString('fr-FR').replaceAll(',', ' ')} €`;
+}
 
 type ValidationErrorResponse = Record<string, string>;
 
@@ -19,8 +37,18 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<DecisionResponse | null>(null);
 
-  const amountProgress = ((loanAmount - 2000) / (10000 - 2000)) * 100;
-  const periodProgress = ((loanPeriod - 12) / (60 - 12)) * 100;
+  const [config, setConfig] = useState<Config | null>(null);
+  const effectiveConfig = config ?? defaultConfig;
+
+  // Load the config from backend in the start of the application
+  useEffect(() => {
+    fetch("http://localhost:8080/api/config")
+      .then(res => res.json())
+      .then(data => setConfig(data));
+  }, []);
+
+  const amountProgress = ((loanAmount - effectiveConfig.minAmount) / (effectiveConfig.maxAmount - effectiveConfig.minAmount)) * 100;
+  const periodProgress = ((loanPeriod - effectiveConfig.minPeriod) / (effectiveConfig.maxPeriod - effectiveConfig.minPeriod)) * 100;
 
   const handleCalculate = async () => {
     setLoading(true);
@@ -86,13 +114,13 @@ export default function HomePage() {
             <label htmlFor="loanAmount" className="field-label">
               Loan amount
             </label>
-            <div className="value-display">{loanAmount.toLocaleString('et-EE')} €</div>
+            <div className="value-display">{formatEuroAmount(loanAmount)}</div>
 
             <input
               id="loanAmount"
               type="range"
-              min={2000}
-              max={10000}
+              min={effectiveConfig.minAmount}
+              max={effectiveConfig.maxAmount}
               step={100}
               value={loanAmount}
               onChange={(e) => setLoanAmount(Number(e.target.value))}
@@ -103,8 +131,8 @@ export default function HomePage() {
             />
 
             <div className="range-labels">
-              <span>2 000 €</span>
-              <span>10 000 €</span>
+              <span>{formatEuroAmount(effectiveConfig.minAmount)}</span>
+              <span>{formatEuroAmount(effectiveConfig.maxAmount)}</span>
             </div>
           </div>
 
@@ -118,8 +146,8 @@ export default function HomePage() {
             <input
               id="loanPeriod"
               type="range"
-              min={12}
-              max={60}
+              min={effectiveConfig.minPeriod}
+              max={effectiveConfig.maxPeriod}
               step={1}
               value={loanPeriod}
               onChange={(e) => setLoanPeriod(Number(e.target.value))}
@@ -155,9 +183,7 @@ export default function HomePage() {
               result.decision === 'POSITIVE' ? 'result-approved' : 'result-rejected'
             }`}
           >
-            <div
-              className="result-header"
-            >
+            <div className="result-header">
               <div
                 className={`result-icon ${
                   result.decision === 'POSITIVE' ? 'result-icon-approved' : 'result-icon-rejected'
@@ -197,7 +223,7 @@ export default function HomePage() {
                 <div className="result-row">
                   <span className="result-label">Amount</span>
                   <span className="result-value">
-                    {result.approvedAmount?.toLocaleString('et-EE')} €
+                    {result.approvedAmount != null ? formatEuroAmount(result.approvedAmount) : ''}
                   </span>
                 </div>
 
