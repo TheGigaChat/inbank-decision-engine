@@ -155,7 +155,9 @@ export default function HomePage() {
               result.decision === 'POSITIVE' ? 'result-approved' : 'result-rejected'
             }`}
           >
-            <div className="result-header">
+            <div
+              className="result-header"
+            >
               <div
                 className={`result-icon ${
                   result.decision === 'POSITIVE' ? 'result-icon-approved' : 'result-icon-rejected'
@@ -185,28 +187,26 @@ export default function HomePage() {
                 )}
               </div>
 
-              <div>
-                <h2 className="result-title">
-                  {result.decision === 'POSITIVE' ? 'Approved' : 'Not approved'}
-                </h2>
-
-                {result.decision === 'POSITIVE' && (
-                  <div className="result-details">
-                    <div className="result-row">
-                      <span className="result-label">Amount</span>
-                      <span className="result-value">
-                        {result.approvedAmount?.toLocaleString('et-EE')} €
-                      </span>
-                    </div>
-
-                    <div className="result-row">
-                      <span className="result-label">Period</span>
-                      <span className="result-value">{result.approvedPeriod} months</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <h2 className="result-title">
+                {result.decision === 'POSITIVE' ? 'Approved' : 'Not approved'}
+              </h2>
             </div>
+
+            {result.decision === 'POSITIVE' && (
+              <div className="result-details">
+                <div className="result-row">
+                  <span className="result-label">Amount</span>
+                  <span className="result-value">
+                    {result.approvedAmount?.toLocaleString('et-EE')} €
+                  </span>
+                </div>
+
+                <div className="result-row">
+                  <span className="result-label">Period</span>
+                  <span className="result-value">{result.approvedPeriod} months</span>
+                </div>
+              </div>
+            )}
           </section>
         )}
       </div>
