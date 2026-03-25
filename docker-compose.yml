@@ -11,6 +11,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        API_BASE_URL: http://backend:8080
     container_name: inbank-frontend
     ports:
       - "3000:3000"
