@@ -26,6 +26,14 @@ frontend/  Next.js application
 docs/      Tests documentation
 ```
 
+## Run with Docker
+
+From the project root:
+
+```bash
+docker compose up --build
+```
+
 ## How to Run
 
 ### Backend
