@@ -10,14 +10,14 @@ import lombok.Setter;
 @Setter
 public class DecisionRequest {
 
-    @NotBlank
+    @NotBlank(message = "personalCode must not be blank")
     private String personalCode;
 
-    @Min(2000)
-    @Max(10000)
+    @Min(value = 2000, message = "loanAmount must be at least 2000")
+    @Max(value = 10000, message = "loanAmount must not exceed 10000")
     private Integer loanAmount;
 
-    @Min(12)
-    @Max(60)
+    @Min(value = 12, message = "loanPeriod must be at least 12")
+    @Max(value = 60, message = "loanPeriod must not exceed 60")
     private Integer loanPeriod;
 }
