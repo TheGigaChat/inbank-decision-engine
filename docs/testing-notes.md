@@ -14,6 +14,11 @@
 - Important refactor caused by tests: the earlier temporary expectation that a failed selected period should return `NEGATIVE` was removed once alternative-period search became implemented behavior.
 - Assumption: tests continue to target service-level business logic only, not validation or controller HTTP behavior.
 
+### Added focused controller validation tests
+- Why: the global error handler makes validation behavior part of the controller contract, so a small `@WebMvcTest` suite is now worth locking down.
+- Protects: valid requests return `200`, invalid request fields return `400`, and validation errors expose the failing field name in the JSON body.
+- Assumption: the controller tests intentionally mock `DecisionService` so they verify request binding, bean validation, and exception handling without turning into full application integration tests.
+
 ### Assignment interpretation recorded
-- The current scope is unit tests only for `ProfileServiceImpl` and the currently agreed `DecisionServiceImpl` algorithm stages.
-- Validation, controller behavior, and integration coverage are intentionally deferred until those behaviors become stable or explicitly requested.
+- The current scope is unit tests for `ProfileServiceImpl` and `DecisionServiceImpl`, plus focused controller-level validation coverage.
+- Full Spring Boot integration coverage, frontend tests, and config externalization tests remain intentionally deferred.
