@@ -35,8 +35,7 @@ public class DecisionServiceImpl implements DecisionService {
 
         int maxApprovedAmountForPeriod = calculateMaxApprovedAmountForPeriod(creditModifier, requestedPeriod);
 
-        if (maxApprovedAmountForPeriod >= requestedAmount
-            && maxApprovedAmountForPeriod >= MIN_AMOUNT) {
+        if (maxApprovedAmountForPeriod >= requestedAmount) {
             return new DecisionResponse(
                     Decision.POSITIVE,
                     maxApprovedAmountForPeriod,
@@ -44,7 +43,7 @@ public class DecisionServiceImpl implements DecisionService {
             );
         }
 
-        return null;
+        return new DecisionResponse(Decision.NEGATIVE, null, null);
     }
 
     private int calculateMaxApprovedAmountForPeriod(int creditModifier, int period) {
