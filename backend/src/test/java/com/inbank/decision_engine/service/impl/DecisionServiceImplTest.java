@@ -8,7 +8,6 @@ import com.inbank.decision_engine.service.ProfileService;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DecisionServiceImplTest {
@@ -31,7 +30,6 @@ class DecisionServiceImplTest {
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 5000, 50));
 
-        assertNotNull(response);
         assertEquals(Decision.POSITIVE, response.decision());
         assertEquals(5000, response.approvedAmount());
         assertEquals(50, response.approvedPeriod());
@@ -43,22 +41,42 @@ class DecisionServiceImplTest {
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 2000, 50));
 
-        assertNotNull(response);
         assertEquals(Decision.POSITIVE, response.decision());
         assertEquals(5000, response.approvedAmount());
         assertEquals(50, response.approvedPeriod());
     }
 
     @Test
-    void calculateDecisionReturnsNegativeDecisionWhenSelectedPeriodDoesNotSupportRequestedAmount() {
+    void calculateDecisionReturnsRequestedAmountAtSmallestAlternativePeriodThatSatisfiesRequest() {
+        DecisionServiceImpl decisionService = new DecisionServiceImpl(personalCode -> new PersonProfile(100, false));
+
+        DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 2000, 12));
+
+        assertEquals(Decision.POSITIVE, response.decision());
+        assertEquals(2000, response.approvedAmount());
+        assertEquals(20, response.approvedPeriod());
+    }
+
+    @Test
+    void calculateDecisionReturnsLaterAlternativePeriodWhenEarlierPeriodsCannotSatisfyRequest() {
         DecisionServiceImpl decisionService = new DecisionServiceImpl(personalCode -> new PersonProfile(100, false));
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 5000, 12));
 
-        assertNotNull(response);
-        assertEquals(Decision.NEGATIVE, response.decision());
-        assertNull(response.approvedAmount());
-        assertNull(response.approvedPeriod());
+        assertEquals(Decision.POSITIVE, response.decision());
+        assertEquals(5000, response.approvedAmount());
+        assertEquals(50, response.approvedPeriod());
+    }
+
+    @Test
+    void calculateDecisionReturnsLargestPossibleOfferWhenNoPeriodSatisfiesRequestedAmount() {
+        DecisionServiceImpl decisionService = new DecisionServiceImpl(personalCode -> new PersonProfile(100, false));
+
+        DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 10000, 12));
+
+        assertEquals(Decision.POSITIVE, response.decision());
+        assertEquals(6000, response.approvedAmount());
+        assertEquals(60, response.approvedPeriod());
     }
 
     @Test
@@ -67,10 +85,20 @@ class DecisionServiceImplTest {
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("00000000000", 2000, 12));
 
-        assertNotNull(response);
         assertEquals(Decision.NEGATIVE, response.decision());
         assertNull(response.approvedAmount());
         assertNull(response.approvedPeriod());
+    }
+
+    @Test
+    void calculateDecisionAppliesMaximumCapForSelectedPeriod() {
+        DecisionServiceImpl decisionService = new DecisionServiceImpl(personalCode -> new PersonProfile(1000, false));
+
+        DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010987", 2000, 20));
+
+        assertEquals(Decision.POSITIVE, response.decision());
+        assertEquals(10000, response.approvedAmount());
+        assertEquals(20, response.approvedPeriod());
     }
 
     private DecisionRequest buildRequest(String personalCode) {
