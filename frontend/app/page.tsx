@@ -2,6 +2,12 @@
 
 import { useState, useEffect } from 'react';
 
+type DecisionResponse = {
+  decision: 'POSITIVE' | 'NEGATIVE';
+  approvedAmount: number | null;
+  approvedPeriod: number | null;
+};
+
 type Config = {
   minAmount: number;
   maxAmount: number;
@@ -16,11 +22,9 @@ const defaultConfig: Config = {
   maxPeriod: 60,
 };
 
-type DecisionResponse = {
-  decision: 'POSITIVE' | 'NEGATIVE';
-  approvedAmount: number | null;
-  approvedPeriod: number | null;
-};
+function formatEuroAmount(value: number): string {
+  return `${value.toLocaleString('fr-FR').replaceAll(',', ' ')} €`;
+}
 
 type ValidationErrorResponse = Record<string, string>;
 
@@ -110,7 +114,7 @@ export default function HomePage() {
             <label htmlFor="loanAmount" className="field-label">
               Loan amount
             </label>
-            <div className="value-display">{loanAmount.toLocaleString('et-EE')} €</div>
+            <div className="value-display">{formatEuroAmount(loanAmount)}</div>
 
             <input
               id="loanAmount"
@@ -127,8 +131,8 @@ export default function HomePage() {
             />
 
             <div className="range-labels">
-              <span>2 000 €</span>
-              <span>10 000 €</span>
+              <span>{formatEuroAmount(effectiveConfig.minAmount)}</span>
+              <span>{formatEuroAmount(effectiveConfig.maxAmount)}</span>
             </div>
           </div>
 
@@ -179,9 +183,7 @@ export default function HomePage() {
               result.decision === 'POSITIVE' ? 'result-approved' : 'result-rejected'
             }`}
           >
-            <div
-              className="result-header"
-            >
+            <div className="result-header">
               <div
                 className={`result-icon ${
                   result.decision === 'POSITIVE' ? 'result-icon-approved' : 'result-icon-rejected'
@@ -221,7 +223,7 @@ export default function HomePage() {
                 <div className="result-row">
                   <span className="result-label">Amount</span>
                   <span className="result-value">
-                    {result.approvedAmount?.toLocaleString('et-EE')} €
+                    {result.approvedAmount != null ? formatEuroAmount(result.approvedAmount) : ''}
                   </span>
                 </div>
 
