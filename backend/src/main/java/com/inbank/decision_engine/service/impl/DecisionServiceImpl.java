@@ -1,5 +1,6 @@
 package com.inbank.decision_engine.service.impl;
 
+import com.inbank.decision_engine.config.LoanConstraintsProperties;
 import com.inbank.decision_engine.dto.DecisionRequest;
 import com.inbank.decision_engine.dto.DecisionResponse;
 import com.inbank.decision_engine.model.Decision;
@@ -10,15 +11,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class DecisionServiceImpl implements DecisionService {
 
-    private static final int MIN_AMOUNT = 2000;
-    private static final int MAX_AMOUNT = 10000;
-    private static final int MIN_PERIOD = 12;
-    private static final int MAX_PERIOD = 60;
-
     private final ProfileService profileService;
+    private final LoanConstraintsProperties constraints;
 
-    public DecisionServiceImpl(ProfileService profileService) {
+    public DecisionServiceImpl(ProfileService profileService,
+                               LoanConstraintsProperties loanConstraintsProperties) {
         this.profileService = profileService;
+        this.constraints = loanConstraintsProperties;
     }
 
     /**
@@ -68,12 +67,12 @@ public class DecisionServiceImpl implements DecisionService {
 
         // If no period can satisfy the requested amount,
         // return the largest possible loan we can offer at all (using max period)
-        int largestPossibleAmount = calculateMaxApprovedAmountForPeriod(creditModifier, MAX_PERIOD);
-        if (largestPossibleAmount >= MIN_AMOUNT) {
+        int largestPossibleAmount = calculateMaxApprovedAmountForPeriod(creditModifier, constraints.getMaxPeriod());
+        if (largestPossibleAmount >= constraints.getMinAmount()) {
             return new DecisionResponse(
                     Decision.POSITIVE,
                     largestPossibleAmount,
-                    MAX_PERIOD
+                    constraints.getMaxPeriod()
             );
         }
 
@@ -81,11 +80,11 @@ public class DecisionServiceImpl implements DecisionService {
     }
 
     private int calculateMaxApprovedAmountForPeriod(int creditModifier, int period) {
-        return Math.min(creditModifier * period, MAX_AMOUNT);
+        return Math.min(creditModifier * period, constraints.getMaxAmount());
     }
 
     private Integer findSuitablePeriodForRequestedAmount(int creditModifier, int requestedAmount) {
-        for (int period = MIN_PERIOD; period <= MAX_PERIOD; period++) {
+        for (int period = constraints.getMinPeriod(); period <= constraints.getMaxPeriod(); period++) {
             int maxApprovedAmount = calculateMaxApprovedAmountForPeriod(creditModifier, period);
             if (maxApprovedAmount >= requestedAmount) {
                 return period;
