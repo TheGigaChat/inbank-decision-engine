@@ -66,6 +66,7 @@ Loan constraints are externalized in `application.yml`:
 - max period
 
 This allows changing business rules without modifying code.
+At the same time, some request validation annotations still use hardcoded limits in the backend, so configuration and validation are not fully driven by the same source yet.
 
 ## API
 
@@ -103,6 +104,8 @@ This allows changing business rules without modifying code.
 }
 ```
 
+I also used a support endpoint GET /api/config which is a bit above the task requirements and I need it for the consistent consts from application.yml file. I can remove it and everything will work with only 1 endpoint how is declared in the task, however we will not be able to change the consts from one place without changing the code.
+
 ## Business Logic
 
 ### 1. User Segmentation
@@ -128,12 +131,11 @@ creditModifier * loanPeriod >= loanAmount
 
 ### 3. Decision Flow
 
-1. Check the selected period.
-2. If it can satisfy the requested amount, approve the loan.
-3. Return the maximum possible amount for that period.
-4. If the selected period fails, find the smallest period that satisfies the request.
-5. If no period satisfies the request, return the largest possible amount within 60 months.
-6. If even the minimum amount of `2000 EUR` is not possible, return `NEGATIVE`.
+1. Reject if the client has debt.
+2. Calculate the maximum approvable amount for the selected period.
+3. If the selected period produces a valid loan amount, return it, even if it is lower than the requested amount.
+4. Otherwise, try to find the smallest new period that produces a valid loan amount.
+5. If no valid period exists, return `NEGATIVE`.
 
 ### 4. Constraints
 
@@ -173,11 +175,9 @@ The frontend follows a clean fintech-style design inspired by Inbank:
 
 ## Possible Improvements
 
-- Externalize configuration such as limits and modifiers into `application.yml`
 - Add integration tests
 - Improve error handling with structured responses
 - Add loading skeletons or animations in the UI
-- Deploy backend and frontend with Docker or a cloud platform
 
 ## Author
 
