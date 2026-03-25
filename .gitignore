@@ -1,0 +1,88 @@
+# Monorepo: frontend (Next.js) + backend (Spring Boot)
+
+# =========================
+# Node / Frontend (Next.js)
+# =========================
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+.next/
+out/
+build/
+dist/
+coverage/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Env files
+.env*
+*.pem
+
+# Next.js specific
+next-env.d.ts
+*.tsbuildinfo
+
+# Vercel
+.vercel
+
+
+# =========================
+# Java / Spring Boot
+# =========================
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+
+
+# =========================
+# IDEs
+# =========================
+.idea/
+*.iws
+*.iml
+*.ipr
+
+.vscode/
+
+# Eclipse / STS
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+
+# =========================
+# NetBeans
+# =========================
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+
+# =========================
+# OS
+# =========================
+.DS_Store
