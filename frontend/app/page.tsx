@@ -156,8 +156,33 @@ export default function HomePage() {
             }`}
           >
             <div className="result-header">
-              <div className="result-icon">
-                {result.decision === 'POSITIVE' ? '✓' : '×'}
+              <div
+                className={`result-icon ${
+                  result.decision === 'POSITIVE' ? 'result-icon-approved' : 'result-icon-rejected'
+                }`}
+                aria-hidden="true"
+              >
+                {result.decision === 'POSITIVE' ? (
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path
+                      d="M16.25 5.625L7.5 14.375L3.75 10.625"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path
+                      d="M13.75 6.25L6.25 13.75M6.25 6.25L13.75 13.75"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
               </div>
 
               <div>

@@ -262,18 +262,26 @@ input {
 }
 
 .result-icon {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: 700;
-  color: #ffffff;
-  background: currentColor;
-  filter: brightness(0.95);
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.result-icon-approved {
+  background: linear-gradient(180deg, #2f8f5b 0%, #23754a 100%);
+  box-shadow: 0 8px 18px rgba(35, 117, 74, 0.22);
+}
+
+.result-icon-rejected {
+  background: linear-gradient(180deg, #dc5c5c 0%, #bd3e3e 100%);
+  box-shadow: 0 8px 18px rgba(189, 62, 62, 0.22);
+}
+
+.result-icon svg {
+  display: block;
 }
 
 .result-title {
