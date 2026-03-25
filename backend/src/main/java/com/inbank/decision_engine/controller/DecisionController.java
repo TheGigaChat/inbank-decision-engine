@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * REST controller for handling loan decision requests.
+ */
 @RestController
 @RequestMapping("/api/decision")
 public class DecisionController {
@@ -19,6 +22,10 @@ public class DecisionController {
         this.decisionService = decisionService;
     }
 
+    /**
+     * Processes loan decision request.
+     * Validates input data and delegates decision calculation to the service layer.
+     */
     @PostMapping
     public DecisionResponse calculate(@Valid @RequestBody DecisionRequest request) {
         return decisionService.calculateDecision(request);
