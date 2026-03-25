@@ -43,10 +43,39 @@ public class DecisionServiceImpl implements DecisionService {
             );
         }
 
+        Integer suitablePeriod = findSuitablePeriodForRequestedAmount(creditModifier, requestedAmount);
+        if (suitablePeriod != null) {
+            int approvedAmount = calculateMaxApprovedAmountForPeriod(creditModifier, suitablePeriod);
+            return new DecisionResponse(
+                    Decision.POSITIVE,
+                    approvedAmount,
+                    suitablePeriod
+            );
+        }
+
+        int largestPossibleAmount = calculateMaxApprovedAmountForPeriod(creditModifier, MAX_PERIOD);
+        if (largestPossibleAmount >= MIN_AMOUNT) {
+            return new DecisionResponse(
+                    Decision.POSITIVE,
+                    largestPossibleAmount,
+                    MAX_PERIOD
+            );
+        }
+
         return new DecisionResponse(Decision.NEGATIVE, null, null);
     }
 
     private int calculateMaxApprovedAmountForPeriod(int creditModifier, int period) {
         return Math.min(creditModifier * period, MAX_AMOUNT);
+    }
+
+    private Integer findSuitablePeriodForRequestedAmount(int creditModifier, int requestedAmount) {
+        for (int period = MIN_PERIOD; period <= MAX_PERIOD; period++) {
+            int maxApprovedAmount = calculateMaxApprovedAmountForPeriod(creditModifier, period);
+            if (maxApprovedAmount >= requestedAmount) {
+                return period;
+            }
+        }
+        return null;
     }
 }
