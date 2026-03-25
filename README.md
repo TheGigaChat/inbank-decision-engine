@@ -26,7 +26,15 @@ frontend/  Next.js application
 docs/      Tests documentation
 ```
 
-## How to Run
+## How to Run (Docker)
+
+From the project root:
+
+```bash
+docker compose up --build
+```
+
+## How to Run (Manually)
 
 ### Backend
 
@@ -42,6 +50,7 @@ Backend runs on `http://localhost:8080`.
 ```bash
 cd frontend
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 

@@ -42,7 +42,7 @@ export default function HomePage() {
 
   // Load the config from backend in the start of the application
   useEffect(() => {
-    fetch("http://localhost:8080/api/config")
+    fetch('/api/config')
       .then(res => res.json())
       .then(data => setConfig(data));
   }, []);
@@ -56,7 +56,7 @@ export default function HomePage() {
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:8080/api/decision', {
+      const response = await fetch('/api/decision', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
