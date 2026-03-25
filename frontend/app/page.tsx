@@ -2,89 +2,189 @@
 
 import { useState } from 'react';
 
-export default function Home() {
-  const [personalCode, setPersonalCode] = useState('');
-  const [loanAmount, setLoanAmount] = useState(2000);
-  const [loanPeriod, setLoanPeriod] = useState(12);
+type DecisionResponse = {
+  decision: 'POSITIVE' | 'NEGATIVE';
+  approvedAmount: number | null;
+  approvedPeriod: number | null;
+};
 
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+type ValidationErrorResponse = Record<string, string>;
 
-  const handleSubmit = async () => {
-    setError(null);
+export default function HomePage() {
+  const [personalCode, setPersonalCode] = useState('49002010965');
+  const [loanAmount, setLoanAmount] = useState(4100);
+  const [loanPeriod, setLoanPeriod] = useState(35);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<DecisionResponse | null>(null);
+
+  const amountProgress = ((loanAmount - 2000) / (10000 - 2000)) * 100;
+  const periodProgress = ((loanPeriod - 12) / (60 - 12)) * 100;
+
+  const handleCalculate = async () => {
+    setLoading(true);
+    setError('');
     setResult(null);
 
     try {
-      const res = await fetch('http://localhost:8080/api/decision', {
+      const response = await fetch('http://localhost:8080/api/decision', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personalCode, loanAmount, loanPeriod }),
-      })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personalCode,
+          loanAmount,
+          loanPeriod,
+        }),
+      });
 
-      if (!res.ok) {
-        const error = await res.json();
-        setError(JSON.stringify(error));
+      if (!response.ok) {
+        const errorData: ValidationErrorResponse = await response.json();
+        setError(Object.values(errorData).join(', '));
+        setLoading(false);
         return;
       }
 
-      const data = await res.json();
+      const data: DecisionResponse = await response.json();
       setResult(data);
-    } catch (err) {
-      setError('Server error.');
+    } catch {
+      setError('Unable to connect to the server. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-    return (
-    <div className="p-10 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Loan Decision</h1>
+  return (
+    <main className="page-shell">
+      <div className="loan-card">
+        <header className="header-block">
+          <h1 className="page-title">Loan Decision</h1>
+          <p className="page-subtitle">Check your loan eligibility instantly</p>
+        </header>
 
-      <div className="flex flex-col gap-4">
-        <input
-          placeholder="Personal Code"
-          value={personalCode}
-          onChange={(e) => setPersonalCode(e.target.value)}
-          className="border p-2"
-        />
+        <section className="form-section">
+          {/* Personal Code Input */}
+          <div className="field-group">
+            <label htmlFor="personalCode" className="field-label">
+              Personal Code
+            </label>
+            <input
+              id="personalCode"
+              type="text"
+              value={personalCode}
+              onChange={(e) => setPersonalCode(e.target.value)}
+              placeholder="Enter personal code"
+              className={`text-input ${error ? 'input-error' : ''}`}
+              maxLength={11}
+            />
+          </div>
 
-        <input
-          type="number"
-          value={loanAmount}
-          min={2000}
-          max={10000}
-          onChange={(e) => setLoanAmount(Number(e.target.value))}
-          className="border p-2"
-        />
+          {/* Loan Amount Slider */}
+          <div className="field-group">
+            <label htmlFor="loanAmount" className="field-label">
+              Loan amount
+            </label>
+            <div className="value-display">{loanAmount.toLocaleString('et-EE')} €</div>
 
-        <input
-          type="number"
-          value={loanPeriod}
-          min={12}
-          max={60}
-          onChange={(e) => setLoanPeriod(Number(e.target.value))}
-          className="border p-2"
-        />
+            <input
+              id="loanAmount"
+              type="range"
+              min={2000}
+              max={10000}
+              step={100}
+              value={loanAmount}
+              onChange={(e) => setLoanAmount(Number(e.target.value))}
+              className="slider"
+              style={{
+                background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${amountProgress}%, var(--color-border) ${amountProgress}%, var(--color-border) 100%)`,
+              }}
+            />
 
-        <button
-          onClick={handleSubmit}
-          className="bg-blue-500 text-white p-2"
-        >
-          Calculate
-        </button>
+            <div className="range-labels">
+              <span>2 000 €</span>
+              <span>10 000 €</span>
+            </div>
+          </div>
+
+          {/* Loan Period Slider */}
+          <div className="field-group">
+            <label htmlFor="loanPeriod" className="field-label">
+              Loan period
+            </label>
+            <div className="value-display">{loanPeriod} months</div>
+
+            <input
+              id="loanPeriod"
+              type="range"
+              min={12}
+              max={60}
+              step={1}
+              value={loanPeriod}
+              onChange={(e) => setLoanPeriod(Number(e.target.value))}
+              className="slider"
+              style={{
+                background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${periodProgress}%, var(--color-border) ${periodProgress}%, var(--color-border) 100%)`,
+              }}
+            />
+
+            <div className="range-labels">
+              <span>12 months</span>
+              <span>60 months</span>
+            </div>
+          </div>
+
+          {/* Calculate Button */}
+          <button
+            type="button"
+            onClick={handleCalculate}
+            disabled={loading}
+            className="primary-button"
+          >
+            {loading ? 'Calculating...' : 'Calculate'}
+          </button>
+
+          {error && <p className="error-text">{error}</p>}
+        </section>
+
+        {/* Result Card */}
+        {result && (
+          <section
+            className={`result-card ${
+              result.decision === 'POSITIVE' ? 'result-approved' : 'result-rejected'
+            }`}
+          >
+            <div className="result-header">
+              <div className="result-icon">
+                {result.decision === 'POSITIVE' ? '✓' : '×'}
+              </div>
+
+              <div>
+                <h2 className="result-title">
+                  {result.decision === 'POSITIVE' ? 'Approved' : 'Not approved'}
+                </h2>
+
+                {result.decision === 'POSITIVE' && (
+                  <div className="result-details">
+                    <div className="result-row">
+                      <span className="result-label">Amount</span>
+                      <span className="result-value">
+                        {result.approvedAmount?.toLocaleString('et-EE')} €
+                      </span>
+                    </div>
+
+                    <div className="result-row">
+                      <span className="result-label">Period</span>
+                      <span className="result-value">{result.approvedPeriod} months</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
       </div>
-
-      {error && (
-        <div className="mt-4 text-red-500">
-          Error: {error}
-        </div>
-      )}
-
-      {result && (
-        <div className="mt-6 border p-4">
-          <p>Decision: {result.decision}</p>
-          <p>Amount: {result.approvedAmount ?? '-'}</p>
-          <p>Period: {result.approvedPeriod ?? '-'}</p>
-        </div>
-      )}
-    </div>
+    </main>
   );
 }
