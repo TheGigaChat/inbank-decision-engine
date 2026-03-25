@@ -10,6 +10,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class DecisionServiceImpl implements DecisionService {
 
+    private static final int MIN_AMOUNT = 2000;
+    private static final int MAX_AMOUNT = 10000;
+    private static final int MIN_PERIOD = 12;
+    private static final int MAX_PERIOD = 60;
+
     private final ProfileService profileService;
 
     public DecisionServiceImpl(ProfileService profileService) {
@@ -24,6 +29,25 @@ public class DecisionServiceImpl implements DecisionService {
             return new DecisionResponse(Decision.NEGATIVE, null, null);
         }
 
+        int requestedAmount = request.getLoanAmount();
+        int requestedPeriod = request.getLoanPeriod();
+        int creditModifier = profile.creditModifier();
+
+        int maxApprovedAmountForPeriod = calculateMaxApprovedAmountForPeriod(creditModifier, requestedPeriod);
+
+        if (maxApprovedAmountForPeriod >= requestedAmount
+            && maxApprovedAmountForPeriod >= MIN_AMOUNT) {
+            return new DecisionResponse(
+                    Decision.POSITIVE,
+                    maxApprovedAmountForPeriod,
+                    requestedPeriod
+            );
+        }
+
         return null;
+    }
+
+    private int calculateMaxApprovedAmountForPeriod(int creditModifier, int period) {
+        return Math.min(creditModifier * period, MAX_AMOUNT);
     }
 }
