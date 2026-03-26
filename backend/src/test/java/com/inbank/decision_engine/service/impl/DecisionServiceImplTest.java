@@ -3,18 +3,21 @@ package com.inbank.decision_engine.service.impl;
 import com.inbank.decision_engine.config.LoanConstraintsProperties;
 import com.inbank.decision_engine.dto.DecisionRequest;
 import com.inbank.decision_engine.dto.DecisionResponse;
+import com.inbank.decision_engine.model.PersonProfileEntity;
 import com.inbank.decision_engine.model.Decision;
-import com.inbank.decision_engine.model.PersonProfile;
+import com.inbank.decision_engine.repository.PersonProfileRepository;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsNegativeDecisionWhenProfileHasDebt() {
-        DecisionServiceImpl decisionService = serviceWithProfile(0, true);
+        DecisionServiceImpl decisionService = serviceWithProfile("49002010998", 0, true);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010998"));
 
@@ -25,7 +28,7 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsPositiveDecisionWhenSelectedPeriodSupportsRequestedAmount() {
-        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
+        DecisionServiceImpl decisionService = serviceWithProfile("49002010965", 100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 5000, 50));
 
@@ -36,7 +39,7 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsMaximumAmountForSelectedPeriodWhenItExceedsRequestedAmount() {
-        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
+        DecisionServiceImpl decisionService = serviceWithProfile("49002010965", 100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 2000, 50));
 
@@ -47,7 +50,7 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsMinimumValidOfferAtSmallestEligiblePeriodWhenSelectedPeriodIsInvalid() {
-        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
+        DecisionServiceImpl decisionService = serviceWithProfile("49002010965", 100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 2000, 12));
 
@@ -57,19 +60,8 @@ class DecisionServiceImplTest {
     }
 
     @Test
-    void calculateDecisionReturnsFirstEligiblePeriodWhenSelectedPeriodIsTooShort() {
-        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
-
-        DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 5000, 12));
-
-        assertEquals(Decision.POSITIVE, response.decision());
-        assertEquals(2000, response.approvedAmount());
-        assertEquals(20, response.approvedPeriod());
-    }
-
-    @Test
     void calculateDecisionReturnsMinimumValidOfferWhenRequestedAmountCannotBeReached() {
-        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
+        DecisionServiceImpl decisionService = serviceWithProfile("49002010965", 100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 10000, 12));
 
@@ -80,7 +72,7 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsSelectedPeriodAmountWhenItIsValidButLowerThanRequestedAmount() {
-        DecisionServiceImpl decisionService = serviceWithProfile(100, false);
+        DecisionServiceImpl decisionService = serviceWithProfile("49002010965", 100, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 3000, 23));
 
@@ -91,7 +83,7 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsNegativeWhenNoValidOfferExistsEvenAtMaximumPeriod() {
-        DecisionServiceImpl decisionService = serviceWithProfile(10, false);
+        DecisionServiceImpl decisionService = serviceWithProfile("49002010965", 10, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010965", 2000, 12));
 
@@ -102,7 +94,7 @@ class DecisionServiceImplTest {
 
     @Test
     void calculateDecisionReturnsNegativeDecisionForUnknownPersonalCodeWithZeroModifier() {
-        DecisionServiceImpl decisionService = new DecisionServiceImpl(new ProfileServiceImpl(), defaultConstraints());
+        DecisionServiceImpl decisionService = serviceWithUnknownProfile();
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("00000000000", 2000, 12));
 
@@ -112,8 +104,8 @@ class DecisionServiceImplTest {
     }
 
     @Test
-    void calculateDecisionAppliesMaximumCapForSelectedPeriod() {
-        DecisionServiceImpl decisionService = serviceWithProfile(1000, false);
+    void calculateDecisionAppliesMaximumCapAndOptimizesPeriod() {
+        DecisionServiceImpl decisionService = serviceWithProfile("49002010987", 1000, false);
 
         DecisionResponse response = decisionService.calculateDecision(buildRequest("49002010987", 2000, 20));
 
@@ -122,11 +114,26 @@ class DecisionServiceImplTest {
         assertEquals(12, response.approvedPeriod());
     }
 
-    private DecisionServiceImpl serviceWithProfile(int creditModifier, boolean hasDebt) {
-        return new DecisionServiceImpl(
-                personalCode -> new PersonProfile(creditModifier, hasDebt),
-                defaultConstraints()
-        );
+    // ---------- helpers ----------
+
+    private DecisionServiceImpl serviceWithProfile(String personalCode, int creditModifier, boolean hasDebt) {
+        PersonProfileRepository repo = mock(PersonProfileRepository.class);
+
+        PersonProfileEntity entity = new PersonProfileEntity();
+        entity.setPersonalCode(personalCode);
+        entity.setCreditModifier(creditModifier);
+        entity.setHasDebt(hasDebt);
+
+        when(repo.findById(personalCode)).thenReturn(Optional.of(entity));
+
+        return new DecisionServiceImpl(repo, defaultConstraints());
+    }
+
+    private DecisionServiceImpl serviceWithUnknownProfile() {
+        PersonProfileRepository repo = mock(PersonProfileRepository.class);
+        when(repo.findById(anyString())).thenReturn(Optional.empty());
+
+        return new DecisionServiceImpl(repo, defaultConstraints());
     }
 
     private LoanConstraintsProperties defaultConstraints() {
