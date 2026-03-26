@@ -10,7 +10,7 @@
 ### Added tests for decision calculation branches
 - Why: `DecisionServiceImpl` now contains stable logic for debt rejection, selected-period approval, smallest-fitting alternative-period search, capped approval amounts, and the best-possible-offer fallback at `60` months.
 - Protects: debt still returns `NEGATIVE`; selected period can approve the request; selected period can return more than requested; the service chooses the smallest later period that satisfies the amount; when no period can satisfy the request, it returns the largest possible offer at `60` months; and modifier `0` still produces a negative decision.
-- Edge cases discovered: the alternative-period branch returns the maximum amount available at the first suitable period, which can equal the requested amount exactly for `2000 / 20` with modifier `100`.
+- Edge cases discovered: the current BLL no longer uses requested amount as the deciding factor for eligibility. The approved offer is now driven by credit modifier and period, so different requested amounts can legitimately produce the same approved amount and period.
 - Important refactor caused by tests: once loan constraints moved into `application.yml`, the service tests were rewritten to construct `LoanConstraintsProperties` explicitly so unit coverage stays independent from Spring configuration binding.
 - Assumption: tests continue to target service-level business logic only, not validation or controller HTTP behavior.
 

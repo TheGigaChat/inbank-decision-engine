@@ -23,10 +23,10 @@ public class DecisionServiceImpl implements DecisionService {
     /**
      * Decision flow:
      * 1. Reject if client has debt
-     * 2. Try to approve using selected period
-     * 3. If not possible, find smallest period that satisfies requested amount
-     * 4. If still not possible, return maximum possible offer
-     * 5. Otherwise reject
+     * 2. Calculate the maximum approvable amount for the selected period
+     * 3. If selected period produces a valid loan amount, return it
+     * 4. Otherwise, try to find the smallest new period that produces a valid loan amount
+     * 5. If no valid period exists, reject
      */
     @Override
     public DecisionResponse calculateDecision(DecisionRequest request) {
@@ -37,42 +37,37 @@ public class DecisionServiceImpl implements DecisionService {
             return createNegativeDecision();
         }
 
-        int requestedAmount = request.getLoanAmount();
         int requestedPeriod = request.getLoanPeriod();
         int creditModifier = profile.creditModifier();
 
-        // Calculate the maximum amount the client can get for the selected period
-        int maxApprovedAmountForPeriod = calculateMaxApprovedAmountForPeriod(creditModifier, requestedPeriod);
+        // First, determine the maximum amount we can offer within the selected period.
+        int approvedAmountForSelectedPeriod =
+                calculateMaxApprovedAmountForPeriod(creditModifier, requestedPeriod);
 
-        // If selected period already supports requested amount,
-        // return the maximum possible amount for this period (not just requested amount)
-        if (maxApprovedAmountForPeriod >= requestedAmount) {
+        // If selected period already produces a valid loan amount, return it immediately,
+        // even if it is lower than the requested amount.
+        if (approvedAmountForSelectedPeriod >= constraints.getMinAmount()) {
+            int optimizedPeriod =
+                    findSmallestPeriodForApprovedAmount(creditModifier, approvedAmountForSelectedPeriod);
+
             return new DecisionResponse(
                     Decision.POSITIVE,
-                    maxApprovedAmountForPeriod,
-                    requestedPeriod
+                    approvedAmountForSelectedPeriod,
+                    optimizedPeriod
             );
         }
 
-        // Try to find the smallest period that can satisfy the requested amount.
-        Integer suitablePeriod = findSuitablePeriodForRequestedAmount(creditModifier, requestedAmount);
+        // If selected period cannot produce even the minimum valid amount,
+        // try to find the smallest period that does.
+        Integer suitablePeriod = findSuitablePeriodForMinimumAmount(creditModifier);
         if (suitablePeriod != null) {
-            int approvedAmount = calculateMaxApprovedAmountForPeriod(creditModifier, suitablePeriod);
+            int approvedAmount =
+                    calculateMaxApprovedAmountForPeriod(creditModifier, suitablePeriod);
+
             return new DecisionResponse(
                     Decision.POSITIVE,
                     approvedAmount,
                     suitablePeriod
-            );
-        }
-
-        // If no period can satisfy the requested amount,
-        // return the largest possible loan we can offer at all (using max period)
-        int largestPossibleAmount = calculateMaxApprovedAmountForPeriod(creditModifier, constraints.getMaxPeriod());
-        if (largestPossibleAmount >= constraints.getMinAmount()) {
-            return new DecisionResponse(
-                    Decision.POSITIVE,
-                    largestPossibleAmount,
-                    constraints.getMaxPeriod()
             );
         }
 
@@ -83,14 +78,23 @@ public class DecisionServiceImpl implements DecisionService {
         return Math.min(creditModifier * period, constraints.getMaxAmount());
     }
 
-    private Integer findSuitablePeriodForRequestedAmount(int creditModifier, int requestedAmount) {
+    private Integer findSuitablePeriodForMinimumAmount(int creditModifier) {
         for (int period = constraints.getMinPeriod(); period <= constraints.getMaxPeriod(); period++) {
-            int maxApprovedAmount = calculateMaxApprovedAmountForPeriod(creditModifier, period);
-            if (maxApprovedAmount >= requestedAmount) {
+            int approvedAmount = calculateMaxApprovedAmountForPeriod(creditModifier, period);
+            if (approvedAmount >= constraints.getMinAmount()) {
                 return period;
             }
         }
         return null;
+    }
+
+    private int findSmallestPeriodForApprovedAmount(int creditModifier, int approvedAmount) {
+        for (int period = constraints.getMinPeriod(); period <= constraints.getMaxPeriod(); period++) {
+            if (creditModifier * period >= approvedAmount) {
+                return period;
+            }
+        }
+        return constraints.getMaxPeriod();
     }
 
     private DecisionResponse createNegativeDecision() {
