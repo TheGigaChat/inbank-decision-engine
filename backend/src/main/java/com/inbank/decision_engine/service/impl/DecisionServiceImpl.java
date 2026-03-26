@@ -4,19 +4,19 @@ import com.inbank.decision_engine.config.LoanConstraintsProperties;
 import com.inbank.decision_engine.dto.DecisionRequest;
 import com.inbank.decision_engine.dto.DecisionResponse;
 import com.inbank.decision_engine.model.Decision;
+import com.inbank.decision_engine.repository.PersonProfileRepository;
 import com.inbank.decision_engine.service.DecisionService;
-import com.inbank.decision_engine.service.ProfileService;
 import org.springframework.stereotype.Service;
 
 @Service
 public class DecisionServiceImpl implements DecisionService {
 
-    private final ProfileService profileService;
+    private final PersonProfileRepository repository;
     private final LoanConstraintsProperties constraints;
 
-    public DecisionServiceImpl(ProfileService profileService,
+    public DecisionServiceImpl(PersonProfileRepository personProfileRepository,
                                LoanConstraintsProperties loanConstraintsProperties) {
-        this.profileService = profileService;
+        this.repository = personProfileRepository;
         this.constraints = loanConstraintsProperties;
     }
 
@@ -30,15 +30,16 @@ public class DecisionServiceImpl implements DecisionService {
      */
     @Override
     public DecisionResponse calculateDecision(DecisionRequest request) {
-        var profile = profileService.resolveProfile(request.getPersonalCode());
+        var entity = repository.findById(request.getPersonalCode()).orElse(null);
+
+        boolean hasDebt = entity != null && entity.isHasDebt();
+        int creditModifier = entity != null ? entity.getCreditModifier() : 0;
+        int requestedPeriod = request.getLoanPeriod();
 
         // Business rule: clients with existing debt are not eligible for any loan
-        if (profile.hasDebt()) {
+        if (hasDebt) {
             return createNegativeDecision();
         }
-
-        int requestedPeriod = request.getLoanPeriod();
-        int creditModifier = profile.creditModifier();
 
         // First, determine the maximum amount we can offer within the selected period.
         int approvedAmountForSelectedPeriod =
