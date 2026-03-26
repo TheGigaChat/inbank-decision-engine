@@ -47,10 +47,13 @@ public class DecisionServiceImpl implements DecisionService {
         // If selected period already produces a valid loan amount, return it immediately,
         // even if it is lower than the requested amount.
         if (approvedAmountForSelectedPeriod >= constraints.getMinAmount()) {
+            int optimizedPeriod =
+                    findSmallestPeriodForApprovedAmount(creditModifier, approvedAmountForSelectedPeriod);
+
             return new DecisionResponse(
                     Decision.POSITIVE,
                     approvedAmountForSelectedPeriod,
-                    requestedPeriod
+                    optimizedPeriod
             );
         }
 
@@ -83,6 +86,15 @@ public class DecisionServiceImpl implements DecisionService {
             }
         }
         return null;
+    }
+
+    private int findSmallestPeriodForApprovedAmount(int creditModifier, int approvedAmount) {
+        for (int period = constraints.getMinPeriod(); period <= constraints.getMaxPeriod(); period++) {
+            if (creditModifier * period >= approvedAmount) {
+                return period;
+            }
+        }
+        return constraints.getMaxPeriod();
     }
 
     private DecisionResponse createNegativeDecision() {

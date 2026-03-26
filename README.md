@@ -176,8 +176,10 @@ The frontend follows a clean fintech-style design inspired by Inbank:
 ## Possible Improvements
 
 - Add integration tests
+- Writing custom annotation validation for the consts
 - Improve error handling with structured responses
 - Add loading skeletons or animations in the UI
+- Add versioning for API requests
 
 ## Author
 
