@@ -9,14 +9,16 @@ The application consists of a **Spring Boot backend** and a **Next.js frontend**
 
 - Java 21
 - Spring Boot
+- Spring Data JPA
+- H2
 - REST API
-- JUnit for testing
+- JUnit & Mockito
 
 ### Frontend
 
-- Next.js with App Router
-- React with TypeScript
-- CSS with a custom design system based on Inbank style
+- Next.js (App Router)
+- React + TypeScript
+- Custom CSS (Inbank-inspired design)
 
 ## Project Structure
 
@@ -65,8 +67,8 @@ Loan constraints are externalized in `application.yml`:
 - min period
 - max period
 
-This allows changing business rules without modifying code.
-At the same time, some request validation annotations still use hardcoded limits in the backend, so configuration and validation are not fully driven by the same source yet.
+Note:
+Validation annotations in DTOs still use hardcoded values, so configuration and validation are not fully centralized.
 
 ## API
 
@@ -104,7 +106,13 @@ At the same time, some request validation annotations still use hardcoded limits
 }
 ```
 
-I also used a support endpoint GET /api/config which is a bit above the task requirements and I need it for the consistent consts from application.yml file. I can remove it and everything will work with only 1 endpoint how is declared in the task, however we will not be able to change the consts from one place without changing the code.
+### Additional Endpoint
+
+`GET /api/config`
+
+Returns loan constraints for frontend usage.
+
+This endpoint is not strictly required by the assignment but was added to keep frontend and backend configuration consistent.
 
 ## Business Logic
 
@@ -121,18 +129,17 @@ Each personal code is mapped to a profile:
 
 ### 2. Rules
 
-If a user has debt, the loan is not approved.
-
-Otherwise, the decision is calculated with:
+- If a user has debt, the loan is not approved.
+- Otherwise, the decision is calculated with:
 
 ```text
-creditModifier * loanPeriod >= loanAmount
+creditModifier * loanPeriod
 ```
 
 ### 3. Decision Flow
 
 1. Reject if the client has debt.
-2. Calculate the maximum approvable amount for the selected period.
+2. Calculate maximum approvable amount for the selected period.
 3. If the selected period produces a valid loan amount, return it, even if it is lower than the requested amount.
 4. Otherwise, try to find the smallest new period that produces a valid loan amount.
 5. If no valid period exists, return `NEGATIVE`.
@@ -168,18 +175,48 @@ The frontend follows a clean fintech-style design inspired by Inbank:
 
 ## Design Decisions
 
-- Strict backend validation with no silent corrections
-- Returning the maximum possible offer, not only the requested amount
-- Record-based DTOs where appropriate for cleaner code
-- Separation of concerns between controller, service, and profile logic
+- Clean separation between API, business logic, and persistence
+- Repository-based profile lookup (instead of in-memory map)
+- Externalized configuration via application.yml
+- Returning the maximum possible offer, not just the requested amount
+- Period optimization: returning the shortest valid period for an approved amount
+- Simple and readable architecture prioritizing clarity over over-engineering
 
 ## Possible Improvements
 
-- Add integration tests
-- Writing custom annotation validation for the consts
-- Improve error handling with structured responses
-- Add loading skeletons or animations in the UI
-- Add versioning for API requests
+- Split frontend logic into structured layers:
+  - components
+  - hooks
+  - services/api
+  - utils
+  - Currently, most logic is located in a single page.tsx file for simplicity.
+- Add integration tests (Spring Boot + database)
+- Replace duplicated validation constants with custom annotation-based validation
+- Improve error handling with structured error responses
+- Add loading states / skeleton UI
+- Introduce API versioning
+- Add authentication layer if extended further
+
+## Assignment Feedback
+One thing I would improve about the take-home assignment is the clarity of the decision logic, especially regarding the relationship between loan amount and loan period.
+
+In the current description, it is not fully clear whether the decision engine should prioritize:
+- matching the requested loan amount by adjusting the period, or
+- returning the maximum possible loan amount within the selected period, even if it differs from the request.
+
+This ambiguity led to multiple valid interpretations during implementation.
+
+### Suggested Improvement
+
+I would improve the assignment by:
+- providing a few additional concrete input/output examples
+- explicitly defining the decision priority:
+  - whether the system should prioritize the selected period or the requested amount
+- clarifying edge cases such as:
+  - when the requested amount cannot be satisfied within the selected period
+  - when multiple valid solutions exist
+
+This would make the expected behavior more deterministic while still allowing candidates to focus on implementation and design decisions.
 
 ## Author
 
