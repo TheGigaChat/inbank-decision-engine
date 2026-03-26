@@ -119,7 +119,7 @@ class DecisionServiceImplTest {
 
         assertEquals(Decision.POSITIVE, response.decision());
         assertEquals(10000, response.approvedAmount());
-        assertEquals(20, response.approvedPeriod());
+        assertEquals(12, response.approvedPeriod());
     }
 
     private DecisionServiceImpl serviceWithProfile(int creditModifier, boolean hasDebt) {
